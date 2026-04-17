@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  profile         LearningProfile?
+  documents       Document[]
+  studyPlans      StudyPlan[]
+  progress        Progress[]
+  sessions        Session[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model LearningProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  goals             String?  // JSON or comma-separated
+  strengths         String?  // JSON or comma-separated
+  weaknesses        String?  // JSON or comma-separated
+  learningStyle     String?  // e.g., "visual", "technical", "simple"
+  pace              String?  // e.g., "fast", "moderate", "slow"
+  currentDifficulty Float    @default(1.0)
+  updatedAt         DateTime @updatedAt
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?  // Raw text or summary
+  fileUrl     String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  modules     Module[]
+  chunks      Chunk[]
+  createdAt   DateTime @default(now())
+}
+
+model Chunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  content     String
+  metadata    String?  // JSON string
+  index       Int
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  title       String
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  topics      Topic[]
+  order       Int
+}
+
+model Topic {
+  id          String    @id @default(cuid())
+  title       String
+  moduleId    String
+  module      Module    @relation(fields: [moduleId], references: [id])
+  concepts    Concept[]
+  order       Int
+}
+
+model Concept {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id])
+  mastery     Float    @default(0.0) // 0 to 1
+  quizzes     Quiz[]
+}
+
+model StudyPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  tasks       Task[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  studyPlanId String
+  studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id])
+  title       String
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  dueDate     DateTime?
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  conceptId   String
+  concept     Concept  @relation(fields: [conceptId], references: [id])
+  type        String   // MCQ, SUBJECTIVE, FLASHCARD
+  question    String
+  answer      String
+  options     String?  // JSON for MCQ options
+  nextReview  DateTime @default(now())
+  difficulty  Float    @default(1.0)
+}
+
+model Progress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  conceptId   String
+  masteryLevel Float
+  lastReviewed DateTime @default(now())
+  correctCount Int     @default(0)
+  wrongCount   Int     @default(0)
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  summary     String?  // Summary of what was learned
+  struggles   String?  // Topics user struggled with
+  createdAt   DateTime @default(now())
+}
